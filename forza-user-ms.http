@@ -1,0 +1,6 @@
+@ForzaUserMs_HostAddress = http://localhost:5182
+
+GET {{ForzaUserMs_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
