@@ -15,7 +15,7 @@ builder.Services.AddCors();
 builder.Services.AddSwaggerGen();
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.ListenAnyIP(5000);
+    options.ListenAnyIP(5002);
 });
 
 var app = builder.Build();
