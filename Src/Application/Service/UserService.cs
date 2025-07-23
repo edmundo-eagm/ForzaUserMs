@@ -11,41 +11,64 @@ namespace Src.Application.Service
     {
         private readonly AppDbContext _context;
         private readonly PasswordService _passwordService;
+        private readonly JwtService _jwtService;
 
         public UserService(
             AppDbContext context,
-            PasswordService passwordService
+            PasswordService passwordService,
+            JwtService jwtService
         ) {
             _context = context;
             _passwordService = passwordService;
+            _jwtService = jwtService;
         }
 
-        public async Task<bool> Signin(UserSigninDto data)
+        public async Task<TokenDto> Signin(UserSigninDto data)
         {
-            data.Password = _passwordService.HashPassword(data.Username, data.Password);
-            data.Username = data.Username.ToLower();
-            var user = new UserEntity
+            try{
+                data.Password = _passwordService.HashPassword(data.Username, data.Password);
+                data.Username = data.Username.ToLower();
+                var user = new UserEntity
+                {
+                    Username = data.Username,
+                    Password = data.Password,
+                };
+
+                _context.User.Add(user);
+                await _context.SaveChangesAsync();
+
+                var userFound =  await _context.User
+                    .FirstOrDefaultAsync(u => u.Username == data.Username.ToLower());
+                if(userFound == null) return null;
+
+                var token = _jwtService.GenerateToken(userFound.Id.ToString());
+                return new TokenDto
+                {
+                    Token = token
+                };
+            }
+            // catch (DbUpdateException ex) when (ex.InnerException is SqlException sqlEx && sqlEx.Number == 2601)
+            catch (Exception)
             {
-                Username = data.Username,
-                Password = data.Password,
-            };
-
-            _context.User.Add(user);
-            await _context.SaveChangesAsync();
-
-            return true;
+                return null;
+            }
         }
 
-        public async Task<bool> Login(UserLoginDto data)
+        public async Task<TokenDto> Login(UserLoginDto data)
         {
             var userFound =  await _context.User
                 .FirstOrDefaultAsync(u => u.Username == data.Username.ToLower());
-            // .Where(p => p.Username == data.Username.ToLower()).FirstAsync();
-            if(userFound == null) return false;
+
+            if(userFound == null) return null;
 
             var isCorrect = _passwordService.VerifyPassword(data.Username, userFound.Password, data.Password);
-            if(isCorrect == false) return false;
-            return true;
+            if(isCorrect == false) return null;
+
+            var token = _jwtService.GenerateToken(userFound.Id.ToString());
+            return new TokenDto
+            {
+                Token = token
+            };
         }
     }
 }

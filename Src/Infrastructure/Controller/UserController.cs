@@ -18,6 +18,9 @@ public class UserController : ControllerBase
     public async Task<IActionResult> Signin([FromBody] UserSigninDto data)
     {
         var response = await _service.Signin(data);
+        if(response == null){
+            return BadRequest(new { message = "No se pudo crear el usuario. Elija otro nombre de usuario e intente de nuevo." });
+        }
         return Ok(response);
     }
 
@@ -25,6 +28,9 @@ public class UserController : ControllerBase
     public async Task<IActionResult> Login([FromBody] UserLoginDto data)
     {
         var response = await _service.Login(data);
+        if(response == null){
+            return Unauthorized(new { message = "Usuario y contraseña incorrectos" });
+        }
         return Ok(response);
     }
 }
