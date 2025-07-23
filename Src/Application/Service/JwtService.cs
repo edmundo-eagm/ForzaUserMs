@@ -42,7 +42,7 @@ namespace Src.Application.Service {
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public ClaimsPrincipal? ValidateToken(string token)
+        public bool ValidateToken(string token)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(_secretKey);
@@ -60,11 +60,11 @@ namespace Src.Application.Service {
                     ClockSkew = TimeSpan.Zero
                 }, out _);
 
-                return principal;
+                return true;
             }
             catch
             {
-                return null;
+                return false;
             }
         }
     }
