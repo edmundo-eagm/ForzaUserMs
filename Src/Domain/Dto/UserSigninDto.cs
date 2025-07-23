@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 namespace Src.Domain.Dto
 {
-    public class UserCreateDto
+    public class UserSigninDto
     {
         [Required(ErrorMessage = "El nombre de usuario es obligatorio.")]
         public required string Username { get; set; }

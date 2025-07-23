@@ -14,21 +14,17 @@ public class UserController : ControllerBase
         _service = service;
     }
 
-    // [HttpGet]
-    // public IActionResult GetAll() => Ok(_service.GetAll());
-
-    // [HttpGet("{id}")]
-    // public IActionResult GetById(int id)
-    // {
-    //     var usero = _service.GetById(id);
-    //     if (usero == null) return NotFound();
-    //     return Ok(usero);
-    // }
-
-    [HttpPost]
-    public async Task<IActionResult> Create([FromBody] UserCreateDto data)
+    [HttpPost("signin")]
+    public async Task<IActionResult> Signin([FromBody] UserSigninDto data)
     {
-        var response = await _service.Create(data);
+        var response = await _service.Signin(data);
+        return Ok(response);
+    }
+
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] UserLoginDto data)
+    {
+        var response = await _service.Login(data);
         return Ok(response);
     }
 }
