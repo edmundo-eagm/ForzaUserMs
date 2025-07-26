@@ -29,96 +29,56 @@ namespace Src.Application.Service
 
         public string GenerateToken(string userId)
         {
-            var now = DateTime.UtcNow;
-            var expire = now.AddMinutes(_expireMinutes);
-
-            var claimsIdentity = new ClaimsIdentity(new[]
+            var claims = new[]
             {
-                new Claim(JwtRegisteredClaimNames.Sub, userId),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            });
+                new Claim(JwtRegisteredClaimNames.Sub, ""),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = claimsIdentity,
-                Expires = expire,
-                NotBefore = now,
-                Issuer = _issuer,
-                Audience = _audience,
-                SigningCredentials = creds
-            };
+            var token = new JwtSecurityToken(
+                issuer: _issuer,
+                audience: _audience,
+                claims: claims,
+                expires: DateTime.Now.AddMinutes(_expireMinutes),
+                signingCredentials: creds);
 
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            var tokenString = tokenHandler.WriteToken(token);
-
-            _logger.LogInformation("Token generado para usuario {UserId}: {Token}", userId, tokenString);
-
-            return tokenString;
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
         public bool ValidateToken(string token)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_secretKey);
+            var key = new[] { new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey)) };
+            var validationParameters = new TokenValidationParameters {
+                ValidateIssuer = true,
+                ValidIssuer = _issuer,
+                ValidateAudience = true,
+                ValidAudience = _audience,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKeys = key,
+                ValidateLifetime = true
+            };
 
-            try
-            {
-                _logger.LogInformation("Validando token...");
-
-                var validationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidIssuer = _issuer,
-                    ValidateAudience = true,
-                    ValidAudience = _audience,
-                    ValidateLifetime = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ClockSkew = TimeSpan.Zero
-                };
-
-                var principal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
-
-                _logger.LogInformation("Token válido para usuario {UserId}", principal.Identity?.Name ?? principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value);
-
-                return true;
-            }
-            catch (SecurityTokenExpiredException)
-            {
-                _logger.LogWarning("Token expirado.");
-                return false;
-            }
-            catch (SecurityTokenException ex)
-            {
-                _logger.LogWarning(ex, "Error validando token.");
-                return false;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error inesperado validando token.");
-                return false;
-            }
-        }
-
-        public void InspectToken(string token)
-        {
             try
             {
                 var tokenHandler = new JwtSecurityTokenHandler();
-                var jwtToken = tokenHandler.ReadJwtToken(token);
-
-                _logger.LogInformation("Inspectando token:");
-                foreach (var claim in jwtToken.Claims)
+                tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
+                var jwt = (JwtSecurityToken)validatedToken;
+                _logger.LogInformation("JWT recibido:");
+                _logger.LogInformation("Issuer: {Issuer}", jwt.Issuer);
+                _logger.LogInformation("Audience: {Audience}", string.Join(", ", jwt.Audiences));
+                _logger.LogInformation("Expires: {Expiration}", jwt.ValidTo);
+                _logger.LogInformation("Claims:");
+                foreach (var claim in jwt.Claims)
                 {
-                    _logger.LogInformation("  Claim Type: {Type}, Value: {Value}", claim.Type, claim.Value);
+                    _logger.LogInformation(" - {Type}: {Value}", claim.Type, claim.Value);
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error inspeccionando token.");
+                return true;
+            } catch (SecurityTokenValidationException ex) {
+                _logger.LogWarning(ex, "Fallo la validación del token JWT: {Message}", ex.Message);
+                return false;
             }
         }
     }

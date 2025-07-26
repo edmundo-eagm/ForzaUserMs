@@ -13,10 +13,12 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 );
 builder.Services.AddCors();
 builder.Services.AddSwaggerGen();
+builder.Services.AddAuthorization(); 
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.ListenAnyIP(5002);
 });
+
 
 var app = builder.Build();
 app.UseSwagger();

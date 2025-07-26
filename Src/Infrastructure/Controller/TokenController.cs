@@ -21,6 +21,6 @@ public class TokenController : ControllerBase
         if (isValid)
             return Ok();
         else
-            return Unauthorized();
+            return Unauthorized(new  { message = "Token invalido" });
     }
 }
